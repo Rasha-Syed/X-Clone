@@ -7,33 +7,36 @@ const HomePage = () => {
   const [feedType, setFeedType] = useState("forYou");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchError, setSearchError] = useState(null);
-  const [theme, setTheme] = useState("light"); // State for theme
-  const [followingUsers, setFollowingUsers] = useState([]); // New state for followed users
-
+  const [theme, setTheme] = useState("light");
+  const [followingUsers, setFollowingUsers] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set initial theme from localStorage (if available)
     const savedTheme = localStorage.getItem("theme") || "light";
     setTheme(savedTheme);
     document.documentElement.setAttribute("data-theme", savedTheme);
   }, []);
 
   useEffect(() => {
-    if (feedType === "following") {
-      const fetchFollowingUsers = async () => {
+    const fetchFollowingUsers = async () => {
+      if (feedType === "following") {
         try {
-          const res = await fetch("/api/users/suggested"); // Adjust this endpoint as needed
+          const res = await fetch("/api/users/following", { method: "GET", credentials: "include" });
           const data = await res.json();
+
+          if (!res.ok) {
+            setFollowingUsers([]);
+            return;
+          }
+
           setFollowingUsers(data);
         } catch (error) {
-          console.error("Error fetching followed users:", error);
+          console.error("Error fetching following users:", error);
         }
-      };
-
-      fetchFollowingUsers();
-    }
-  }, [feedType]); // Fetch followed users when "Following" is selected
+      }
+    };
+    fetchFollowingUsers();
+  }, [feedType]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -50,7 +53,7 @@ const HomePage = () => {
       setSearchError(null);
       navigate(`/profile/${data.username}`);
     } catch (error) {
-      console.error("Search Error: ", error);
+      console.error("Search Error:", error);
       setSearchError("User not found");
     }
   };
@@ -59,7 +62,7 @@ const HomePage = () => {
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
     document.documentElement.setAttribute("data-theme", newTheme);
-    localStorage.setItem("theme", newTheme); // Save theme in localStorage
+    localStorage.setItem("theme", newTheme);
   };
 
   return (
@@ -69,22 +72,22 @@ const HomePage = () => {
         <div className="flex w-full border-b border-gray-700 justify-between items-center p-4">
           <div className="flex space-x-4">
             <div
-              className={`flex justify-center p-3 transition duration-300 cursor-pointer relative ${theme === "light" ? "hover:bg-gray-200" : "hover:bg-secondary"}`}
+              className={`flex justify-center p-3 transition duration-300 cursor-pointer relative ${
+                theme === "light" ? "hover:bg-gray-200" : "hover:bg-secondary"
+              }`}
               onClick={() => setFeedType("forYou")}
             >
               For you
-              {feedType === "forYou" && (
-                <div className="absolute bottom-0 w-10 h-1 rounded-full bg-primary"></div>
-              )}
+              {feedType === "forYou" && <div className="absolute bottom-0 w-10 h-1 rounded-full bg-primary"></div>}
             </div>
             <div
-              className={`flex justify-center p-3 transition duration-300 cursor-pointer relative ${theme === "light" ? "hover:bg-gray-200" : "hover:bg-secondary"}`}
+              className={`flex justify-center p-3 transition duration-300 cursor-pointer relative ${
+                theme === "light" ? "hover:bg-gray-200" : "hover:bg-secondary"
+              }`}
               onClick={() => setFeedType("following")}
             >
               Following
-              {feedType === "following" && (
-                <div className="absolute bottom-0 w-10 h-1 rounded-full bg-primary"></div>
-              )}
+              {feedType === "following" && <div className="absolute bottom-0 w-10 h-1 rounded-full bg-primary"></div>}
             </div>
           </div>
           {/* Theme Switch Button */}
@@ -106,39 +109,37 @@ const HomePage = () => {
             Search
           </button>
 
-          {searchError && (
-            <p className="text-red-500 text-center mt-2">{searchError}</p>
-          )}
+          {searchError && <p className="text-red-500 text-center mt-2">{searchError}</p>}
         </div>
 
         {/* CREATE POST INPUT */}
         <CreatePost />
 
-        {/* POSTS */}
-        {feedType === "forYou" ? (
-          <Posts feedType={feedType} />
-        ) : (
-          /* Following Users Section */
-          <div className="p-4">
-            <h2 className="text-xl font-bold mb-4">Following</h2>
-            {followingUsers.length > 0 ? (
-              followingUsers.map((user) => (
-                <div key={user._id} className="flex items-center mb-3 border-b pb-2">
+        {/* FOLLOWING USERS */}
+        {feedType === "following" ? (
+          followingUsers.length > 0 ? (
+            <div className="p-4">
+              <h2 className="text-lg font-semibold mb-4">Following</h2>
+              {followingUsers.map((user) => (
+                <div
+                  key={user._id}
+                  className="flex items-center space-x-4 p-2 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                  onClick={() => navigate(`/profile/${user.username}`)}
+                >
                   <img
-                    src={user.profileImg || '/default-profile.png'}
-                    alt={user.fullName}
-                    className="w-10 h-10 rounded-full mr-3"
+                    src={user.profileImg || "/avatar-placeholder.png"} // Updated image path
+                    alt={`${user.username}'s profile`}
+                    className="w-10 h-10 rounded-full"
                   />
-                  <div className="flex flex-col">
-                    <h3 className="text-lg font-semibold">{user.fullName}</h3>
-                    <p className="text-gray-500">@{user.username}</p>
-                  </div>
+                  <p className="text-sm font-medium">{user.username}</p>
                 </div>
-              ))
-            ) : (
-              <p className="text-gray-500">No followed users found.</p>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 p-4">You're not following any users.</p>
+          )
+        ) : (
+          <Posts feedType={feedType} />
         )}
       </div>
     </>

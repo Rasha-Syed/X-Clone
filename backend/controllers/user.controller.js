@@ -64,6 +64,24 @@ export const followUnfollowUser = async (req, res) => {
     }
 };
 
+
+//new
+// user.controller.js
+export const getFollowingUsers = async (req, res) => {
+    try {
+        const currentUser = await User.findById(req.user._id).populate("following", "username profileImg");
+        if (!currentUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json(currentUser.following);
+    } catch (error) {
+        console.log("Error in getFollowingUsers: ", error.message);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+
 // Update User Profile
 export const updateUser = async (req, res) => {
     const { fullName, email, username, currentPassword, newPassword, bio, link } = req.body;
